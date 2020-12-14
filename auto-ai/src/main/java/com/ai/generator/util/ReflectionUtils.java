@@ -62,8 +62,8 @@ public class ReflectionUtils {
 	 * @param list
 	 */
 	 public static void findTree( List list) {
-		 Map<Long, Tree> tAreaMap = new HashMap<>();
-		 Map<Long,List<Tree>> childMap = new HashMap<>();
+		 Map<Long, Tree> tAreaMap = new HashMap<Long, Tree>();
+		 Map<Long,List<Tree>> childMap = new HashMap<Long,List<Tree>>();
 		 if(list!=null && list.size()>0){
 			 Iterator<Object> iterator = list.iterator();
 			 while(iterator.hasNext()){

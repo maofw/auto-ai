@@ -153,8 +153,8 @@ public class ExcelUtil {
         //------统计有多少列需要导出
         int count = 0;
         Field[] field = cls.getDeclaredFields();
-        Map<Integer, Object[]> res = new ConcurrentHashMap<>();
-        List<Map<Integer, Object[]>> collection = new ArrayList<>();
+        Map<Integer, Object[]> res = new ConcurrentHashMap<Integer, Object[]>();
+        List<Map<Integer, Object[]>> collection = new ArrayList<Map<Integer, Object[]>>();
         for (Field fie : field) {
             if (fie.isAnnotationPresent(Excel.class)) {
                 Excel resources = fie.getAnnotation(Excel.class);
