@@ -26,8 +26,6 @@ public class FileServiceImpl implements FileService {
     protected static Logger logger = LoggerFactory.getLogger(FileServiceImpl.class);
 
     @Autowired
-    private FileUploadUtils fileUploadUtils ;
-    @Autowired
     private PropertiesConfig propertiesConfig ;
     @Override
     public HttpResult<FileResponse> upload(MultipartFile file) {
@@ -42,7 +40,7 @@ public class FileServiceImpl implements FileService {
         }
         FileResponse mfile = null ;
         try {
-            mfile = fileUploadUtils.upload(propertiesConfig.getImageUploadPathRoot(),file);
+            mfile = FileUploadUtils.upload(propertiesConfig.getImageUploadPathRoot(),file);
             logger.info("上传成功！");
             return HttpResult.success(mfile);
         } catch (IOException e) {
@@ -57,7 +55,7 @@ public class FileServiceImpl implements FileService {
         if (StringUtils.isEmpty(filePath)) {
             return HttpResult.error("文件为空");
         }
-        boolean b = fileUploadUtils.deleteImageOnDisk(propertiesConfig.getImageUploadPathRoot()+filePath);
+        boolean b = FileUploadUtils.deleteImageOnDisk(propertiesConfig.getImageUploadPathRoot()+filePath);
         if(b){
             return HttpResult.success();
         }else{
@@ -67,7 +65,7 @@ public class FileServiceImpl implements FileService {
 
     @Override
     public HttpResult fetch(String filePath) throws IOException {
-        byte[] bytes = fileUploadUtils.getBytesByFile(propertiesConfig.getImageUploadPathRoot()+filePath);
+        byte[] bytes = FileUploadUtils.getBytesByFile(propertiesConfig.getImageUploadPathRoot()+filePath);
         if(bytes!=null){
             return HttpResult.success(bytes);
         }else{
