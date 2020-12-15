@@ -4,16 +4,12 @@ import org.apache.poi.hssf.usermodel.*;
 import org.apache.poi.poifs.filesystem.POIFSFileSystem;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
-import org.apache.poi.xssf.usermodel.XSSFCell;
-import org.apache.poi.xssf.usermodel.XSSFRow;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.URLEncoder;
@@ -36,8 +32,67 @@ public class ExcelUtil {
      * @return
      * @throws Exception
      */
+    public static <T> List<T> parseExcel(MultipartFile file,Class<T> tClass)  {
+        return parseExcel(file,tClass,1);
+    }
+    /**
+     * 读取Excel内容
+     * @param file
+     * @return
+     * @throws Exception
+     */
+    public static <T> List<T> parseExcel(MultipartFile file,Class<T> tClass,int startRow) {
+        if (file == null || file.isEmpty()) {
+            //代表没有文件
+            return null;
+        }
+        if (file.getOriginalFilename() == null || "".equals(file.getOriginalFilename())) {
+            return null ;
+        }
+        if(tClass == null){
+            return null ;
+        }
+        Field[] field = tClass.getDeclaredFields();
+        Map<Integer, Field> res = new ConcurrentHashMap<Integer, Field>();
+        try {
+            for (Field fie : field) {
+                if (fie.isAnnotationPresent(Excel.class)) {
+                    Excel resources = fie.getAnnotation(Excel.class);
+                    if (!res.containsKey(resources.sort())) {
+                        res.put(resources.sort(), fie);
+                    }
+                }
+            }
+            if (!res.isEmpty()) {
+                String filename = file.getOriginalFilename();
+                Workbook workbook = null ;
+                if(filename.endsWith(".xls")) {
+                    //POI导入文件,存放到list集合
+                    workbook = new HSSFWorkbook(new POIFSFileSystem(file.getInputStream()));
+                }else if(filename.endsWith(".xlsx")){
+                    //POI导入文件,存放到list集合
+                    workbook = new XSSFWorkbook(file.getInputStream());
+                }
+                return parseWorkbook(workbook,res,tClass,startRow) ;
+            }
+        }catch (Exception e) {
+            e.printStackTrace();
+        }finally {
+            res.clear();
+            res = null ;
+        }
+        return null ;
+    }
+
+
+    /**
+     * 读取Excel内容
+     * @param file
+     * @return
+     * @throws Exception
+     */
     public static List<Map<Integer,Object>> parseExcel(MultipartFile file) throws Exception{
-        return parseExcel(file,2);
+        return parseExcel(file,1);
     }
     /**
      * 读取Excel内容
@@ -54,66 +109,24 @@ public class ExcelUtil {
             return null ;
         }
         String filename = file.getOriginalFilename();
-        List<Map<Integer,Object>> list = new ArrayList<>();
+        Workbook workbook = null;
         if(filename.endsWith(".xls")) {
             //POI导入文件,存放到list集合
-            HSSFWorkbook workbook = new HSSFWorkbook(new POIFSFileSystem(file.getInputStream()));
-            //意思是有几个文件,一个excel可能有多个sheet,这里只读取第一个
-            int sheets = workbook.getNumberOfSheets();
-            //只读取第一个sheet
-            HSSFSheet sheetAt = workbook.getSheetAt(0);
-            //这个表示当前sheet有多少行数据,一行一行读取就行
-            int rows = sheetAt.getPhysicalNumberOfRows();
-            for (int i = startRow; i < rows; i++) {
-                Map<Integer, Object> map = new HashMap<>();
-                //某一行的数据,是一行一行的读取
-                HSSFRow row = sheetAt.getRow(i);
-                if(row == null){
-                    continue ;
-                }
-                int idx = 0;
-                for (int start = row.getFirstCellNum(), end = row.getLastCellNum(); start < end; start++) {
-                    HSSFCell cell = row.getCell(start);
-                    if(cell == null){
-                        continue ;
-                    }
-                    cell.setCellType(CellType.STRING);
-                    map.put(idx++,cell .getStringCellValue());
-                }
-                list.add(map);
-            }
+            workbook = new HSSFWorkbook(new POIFSFileSystem(file.getInputStream()));
         }else if(filename.endsWith(".xlsx")){
             //POI导入文件,存放到list集合
-                XSSFWorkbook workbook = new XSSFWorkbook(file.getInputStream());
-                //意思是有几个文件,一个excel可能有多个sheet,这里只读取第一个
-                int sheets = workbook.getNumberOfSheets();
-                //只读取第一个sheet
-                XSSFSheet sheetAt = workbook.getSheetAt(0);
-                //这个表示当前sheet有多少行数据,一行一行读取就行,但是会把没有数据的行读出来,需要加异常处理
-                int rows = sheetAt.getPhysicalNumberOfRows();
-                for (int i = startRow; i < rows; i++) {
-                    Map<Integer, Object> map = new HashMap<>();
-                    //某一行的数据,是一行一行的读取
-                    XSSFRow row = sheetAt.getRow(i);
-                    if(row == null){
-                        continue ;
-                    }
-                    int idx = 0;
-                    for (int start = row.getFirstCellNum(), end = row.getLastCellNum(); start < end; start++) {
-                        XSSFCell cell = row.getCell(start);
-                        if(cell == null){
-                            continue ;
-                        }
-                        cell.setCellType(CellType.STRING);
-                        map.put(idx++, cell.getStringCellValue());
-                    }
-                    list.add(map);
-                }
+            workbook = new XSSFWorkbook(file.getInputStream());
         }
-        return list ;
+        return parseWorkbook(workbook,startRow) ;
     }
 
-
+    /**
+     *  excel数据导出
+      * @param exportDataDTO
+     * @param cls
+     * @param response
+     * @throws IOException
+     */
     public static void exportExcel(ExportDataDTO exportDataDTO, Class<?> cls, HttpServletResponse response) throws IOException {
         //准备将Excel的输出流通过response输出到页面下载
         //八进制输出流
@@ -143,6 +156,89 @@ public class ExcelUtil {
         } finally {
             hssfWorkbook.close();
         }
+    }
+
+    /**
+     * 解析Workbook转换为对象
+     * @param res
+     * @param tClass
+     * @param startRow
+     * @param <T>
+     * @return
+     * @throws IllegalAccessException
+     * @throws InstantiationException
+     */
+    private static <T> List<T> parseWorkbook( Workbook workbook,Map<Integer, Field> res,Class<T> tClass,int startRow) throws IllegalAccessException, InstantiationException {
+        if(workbook == null || res == null || tClass == null || res.isEmpty()){
+            return null ;
+        }
+        List<T> list = new ArrayList<>();
+        Sheet sheetAt = workbook.getSheetAt(0);
+        //这个表示当前sheet有多少行数据,一行一行读取就行,但是会把没有数据的行读出来,需要加异常处理
+        int rows = sheetAt.getPhysicalNumberOfRows();
+        for (int i = startRow; i < rows; i++) {
+            //某一行的数据,是一行一行的读取
+            Row row = sheetAt.getRow(i);
+            if(row == null){
+                continue ;
+            }
+            T t = tClass.newInstance();
+            int idx = 0;
+            for ( int start = row.getFirstCellNum(), end = row.getLastCellNum(); start < end; start++) {
+                Cell cell = row.getCell(start);
+                if(cell == null){
+                    continue ;
+                }
+                cell.setCellType(CellType.STRING);
+                Field fie = res.get(idx++);
+                if(fie!=null){
+                    fie.setAccessible(true);
+                    fie.set(t,cell.getStringCellValue());
+                }
+            }
+            list.add(t);
+        }
+        return list ;
+    }
+
+    /**
+     * 解析Workbook转换为Map
+     * @param workbook
+     * @param startRow
+     * @return
+     */
+    private static List<Map<Integer,Object>> parseWorkbook(Workbook workbook,int startRow){
+        if(workbook == null){
+            return null ;
+        }
+        //意思是有几个文件,一个excel可能有多个sheet,这里只读取第一个
+        // int sheets = workbook.getNumberOfSheets();
+        //只读取第一个sheet
+        Sheet sheetAt = workbook.getSheetAt(0);
+        //这个表示当前sheet有多少行数据,一行一行读取就行,但是会把没有数据的行读出来,需要加异常处理
+        int rows = sheetAt.getPhysicalNumberOfRows();
+        List<Map<Integer,Object>> list = new ArrayList<>();
+        for (int i = startRow; i < rows; i++) {
+            //某一行的数据,是一行一行的读取
+            Row row = sheetAt.getRow(i);
+            if(row == null){
+                continue ;
+            }
+            Map<Integer, Object> map = new HashMap<>();
+            int idx = 0;
+            for (int start = row.getFirstCellNum(), end = row.getLastCellNum(); start < end; start++) {
+                Cell cell = row.getCell(start);
+                if(cell == null){
+                    continue ;
+                }
+                cell.setCellType(CellType.STRING);
+                map.put(idx++, cell.getStringCellValue());
+            }
+            if(!map.isEmpty()){
+                list.add(map);
+            }
+        }
+        return list ;
     }
 
     /**

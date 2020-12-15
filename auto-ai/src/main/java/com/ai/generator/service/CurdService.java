@@ -4,8 +4,6 @@ package com.ai.generator.service;
 import com.ai.generator.page.PageRequest;
 import com.ai.generator.page.PageResult;
 
-import java.util.List;
-
 
 /**
  * 通用CURD接口
@@ -25,12 +23,6 @@ public interface CurdService<T> {
 	 * @return
 	 */
 	int delete(T record);
-	
-	/**
-	 * 批量删除操作
-	 * @param records
-	 */
-	int delete(List<T> records);
 	
 	/**
 	 * 根据ID查询
