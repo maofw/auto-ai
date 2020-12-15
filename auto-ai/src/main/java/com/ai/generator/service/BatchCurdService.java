@@ -22,9 +22,4 @@ public interface BatchCurdService<T> extends CurdService<T>{
 	 */
 	int updateBatch(List<T> list);
 
-	/**
-	 * 批量删除操作
-	 * @param list
-	 */
-	int deleteBatch(List<T> list);
 }

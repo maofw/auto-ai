@@ -1,0 +1,6 @@
+task:
+  core_pool_size: 5
+  max_pool_size: 10
+  queue_capacity: 20
+  name_prefix: task-service-
+  keep_alive_seconds: 50

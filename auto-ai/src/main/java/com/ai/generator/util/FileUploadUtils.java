@@ -1,7 +1,6 @@
 package com.ai.generator.util;
 
-import com.ai.generator.http.HttpResult;
-import com.alibaba.fastjson.JSON;
+import com.ai.generator.model.FileResponse;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -10,8 +9,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -28,11 +25,11 @@ public class FileUploadUtils {
      * @param file
      * @return
      */
-    public static HttpResult<String> upload(String imageUploadPathRoot ,MultipartFile file) throws IOException {
+    public static FileResponse upload(String imageUploadPathRoot , MultipartFile file) throws IOException {
         //获得物理路径webapp所在路径
         String name = null;
         String path = null;
-        HttpResult<String> result = null;
+        FileResponse myFile = null ;
         if(!file.isEmpty()){
             //生成uuid作为文件名称
             String uuid = UUID.randomUUID().toString().replaceAll("-","");
@@ -55,22 +52,21 @@ public class FileUploadUtils {
             }
             //上传写入文件内容
             file.transferTo(new java.io.File(imageDir,picName));
-            Map<String,Object> map = new HashMap<>();
-            map.put("name",name);
-            map.put("path",path);
-            map.put("subfix",subfix);
-            map.put("size",file.getSize());
-            map.put("contentType",file.getContentType());
-            map.put("createTime",sdf_db.format(new Date()));
-            return HttpResult.success(JSON.toJSONString(map));
+
+            myFile = new FileResponse();
+            myFile.setName(name);
+            myFile.setPath(path);
+            myFile.setSubfix(subfix);
+            myFile.setSize(file.getSize());
+            myFile.setContentType(file.getContentType());
+            myFile.setCreateTime(sdf_db.format(new Date()));
         }
-        return HttpResult.error("文件为空") ;
+        return myFile ;
     }
 
-    public static boolean deleteImageOnDisk(String imageUploadPathRoot ,String filePath){
+    public static boolean deleteImageOnDisk(String filePath){
         if(filePath!=null && !StringUtils.isEmpty(filePath)){
-            String fullPath = imageUploadPathRoot + filePath;
-            java.io.File realFile = new java.io.File(fullPath);
+            java.io.File realFile = new java.io.File(filePath);
             if(realFile.exists()){
                 return realFile.delete();
             }
@@ -78,10 +74,9 @@ public class FileUploadUtils {
         return false;
     }
 
-    public static java.io.File getFileOnDisk(String imageUploadPathRoot ,String filePath){
+    public static java.io.File getFileOnDisk( String filePath){
         if(filePath!=null && !StringUtils.isEmpty(filePath)){
-            String fullPath = imageUploadPathRoot + filePath;
-            java.io.File realFile = new java.io.File(fullPath);
+            java.io.File realFile = new java.io.File(filePath);
             if(realFile.exists()){
                 return realFile;
             }
@@ -91,8 +86,8 @@ public class FileUploadUtils {
 
 
     //将文件转换成Byte数组
-    public static byte[] getBytesByFile(String imageUploadPathRoot,String pathStr) {
-        java.io.File file = getFileOnDisk(imageUploadPathRoot,pathStr);
+    public static byte[] getBytesByFile(String pathStr) {
+        java.io.File file = getFileOnDisk(pathStr);
         if(file!=null){
             try {
                 FileInputStream fis = new FileInputStream(file);
