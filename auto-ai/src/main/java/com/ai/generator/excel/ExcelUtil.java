@@ -9,14 +9,14 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletResponse;
-import java.io.*;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static java.util.stream.Collectors.toList;
@@ -26,13 +26,14 @@ import static java.util.stream.Collectors.toList;
  * @CreateDate: 2019/4/30 18:33
  */
 public class ExcelUtil {
+    private static final SimpleDateFormat sdf = new SimpleDateFormat();
     /**
      * 读取Excel内容
      * @param file
      * @return
      * @throws Exception
      */
-    public static <T> List<T> parseExcel(MultipartFile file,Class<T> tClass)  {
+    public static <T> List<T> parseExcel(MultipartFile file,Class<T> tClass) throws Exception {
         return parseExcel(file,tClass,1);
     }
     /**
@@ -41,7 +42,7 @@ public class ExcelUtil {
      * @return
      * @throws Exception
      */
-    public static <T> List<T> parseExcel(MultipartFile file,Class<T> tClass,int startRow) {
+    public static <T> List<T> parseExcel(MultipartFile file,Class<T> tClass,int startRow) throws Exception {
         if (file == null || file.isEmpty()) {
             //代表没有文件
             return null;
@@ -53,13 +54,13 @@ public class ExcelUtil {
             return null ;
         }
         Field[] field = tClass.getDeclaredFields();
-        Map<Integer, Field> res = new ConcurrentHashMap<Integer, Field>();
+        Map<Integer, Object[]> res = new ConcurrentHashMap<Integer, Object[]>();
         try {
             for (Field fie : field) {
                 if (fie.isAnnotationPresent(Excel.class)) {
                     Excel resources = fie.getAnnotation(Excel.class);
                     if (!res.containsKey(resources.sort())) {
-                        res.put(resources.sort(), fie);
+                        res.put(resources.sort(), new Object[]{resources, fie});
                     }
                 }
             }
@@ -77,6 +78,7 @@ public class ExcelUtil {
             }
         }catch (Exception e) {
             e.printStackTrace();
+            throw new Exception(e.getMessage());
         }finally {
             res.clear();
             res = null ;
@@ -168,7 +170,7 @@ public class ExcelUtil {
      * @throws IllegalAccessException
      * @throws InstantiationException
      */
-    private static <T> List<T> parseWorkbook( Workbook workbook,Map<Integer, Field> res,Class<T> tClass,int startRow) throws IllegalAccessException, InstantiationException {
+    private static <T> List<T> parseWorkbook( Workbook workbook,Map<Integer, Object[]> res,Class<T> tClass,int startRow) throws IllegalAccessException, InstantiationException {
         if(workbook == null || res == null || tClass == null || res.isEmpty()){
             return null ;
         }
@@ -189,18 +191,71 @@ public class ExcelUtil {
                 if(cell == null){
                     continue ;
                 }
-                cell.setCellType(CellType.STRING);
-                Field fie = res.get(idx++);
-                if(fie!=null){
-                    fie.setAccessible(true);
-                    fie.set(t,cell.getStringCellValue());
-                }
+                Object[] objects = res.get(idx++);
+                Excel excel = (Excel) objects[0];
+                Field fie = (Field)objects[1];
+                invokeField(t,excel,fie,cell);
             }
             list.add(t);
         }
         return list ;
     }
 
+    /**
+     * 设置字段属性
+     * @param field
+     * @param cell
+     */
+    private static void invokeField(Object object,Excel excel ,Field field,Cell cell) throws IllegalAccessException {
+        if(field == null || cell==null){
+            return ;
+        }
+        field.setAccessible(true);
+        cell.setCellType(CellType.STRING);
+        String cellValue = cell.getStringCellValue();
+        Object fieldValue = null ;
+        if(field.getType() == String.class){
+            fieldValue = cellValue ;
+        }else if(field.getType() == Integer.class){
+            try{
+                fieldValue = Integer.parseInt(cellValue);
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+        }else if(field.getType() == Long.class){
+            try{
+                fieldValue = Long.parseLong(cellValue);
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+        }else if(field.getType() == Float.class){
+            try{
+                fieldValue = Float.parseFloat(cellValue);
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+        }else if(field.getType() == Double.class){
+            try{
+                fieldValue = Double.parseDouble(cellValue);
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+        }else if(field.getType() == Date.class){
+            try{
+                sdf.applyPattern(excel.format());
+                fieldValue = sdf.parse(cellValue);
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+        field.set(object,fieldValue);
+    }
+
+    public static void main(String[] args) throws ParseException {
+        SimpleDateFormat sdf = new SimpleDateFormat("");
+        sdf.applyPattern("yyyy-MM-dd");
+        System.out.println(sdf.format(sdf.parse("2020-12-21")));
+    }
     /**
      * 解析Workbook转换为Map
      * @param workbook

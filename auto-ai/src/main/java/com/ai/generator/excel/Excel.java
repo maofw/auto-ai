@@ -20,4 +20,10 @@ public @interface Excel {
      * @return
      */
     String title() default "";
+
+    /**
+     * 日期格式化
+     * @return
+     */
+    String format() default "yyyy-MM-dd HH:mm:ss";
 }
