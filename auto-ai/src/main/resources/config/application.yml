@@ -1,3 +1,8 @@
+spring:
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 200MB
 task:
   core_pool_size: 5
   max_pool_size: 10
