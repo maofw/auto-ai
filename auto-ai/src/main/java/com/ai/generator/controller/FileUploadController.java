@@ -55,7 +55,7 @@ public class FileUploadController {
     /**
      * 删除图片
      */
-    @PostMapping(value = "/file/deleteOSS", produces = {MediaType.APPLICATION_JSON_UTF8_VALUE}, consumes = MediaType.APPLICATION_JSON_UTF8_VALUE)
+    @PostMapping(value = "/file/deleteOSS")
     public HttpResult<String> deleteOSS(@RequestParam String filePath) throws IOException {
         return fileService.delete(filePath);
     }
