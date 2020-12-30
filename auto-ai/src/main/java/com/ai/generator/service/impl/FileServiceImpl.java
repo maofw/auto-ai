@@ -64,6 +64,26 @@ public class FileServiceImpl implements FileService {
     }
 
     @Override
+    public HttpResult deleteFiles(String[] filePaths) throws IOException {
+        if(filePaths == null || filePaths.length<=0){
+            return  HttpResult.error("文件为空");
+        }
+        boolean b = true ;
+        for(String filePath:filePaths){
+            if(StringUtils.isEmpty(filePath)){
+               continue ;
+            }
+            String path = filePath.trim();
+            b |= FileUploadUtils.deleteImageOnDisk(propertiesConfig.getImageUploadPathRoot()+path);
+        }
+        if(b){
+            return HttpResult.success();
+        }else{
+            return HttpResult.error("文件删除失败");
+        }
+    }
+
+    @Override
     public HttpResult fetch(String filePath) throws IOException {
         byte[] bytes = FileUploadUtils.getBytesByFile(propertiesConfig.getImageUploadPathRoot()+filePath);
         if(bytes!=null){

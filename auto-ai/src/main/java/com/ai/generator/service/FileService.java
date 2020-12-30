@@ -27,5 +27,7 @@ public interface FileService {
      */
     HttpResult delete(String filePath) throws IOException;
 
+    HttpResult deleteFiles(String[] filePaths) throws IOException;
+
     HttpResult fetch(String filePath) throws IOException ;
 }
