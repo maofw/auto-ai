@@ -22,7 +22,7 @@ public class TokenUtil {
      * @param id
      * @return
      */
-    private TokenEntity createToken(Long id) {
+    public TokenEntity createToken(Long id) {
         TokenEntity tokenModel = new TokenEntity();
         tokenModel.setId(id);
         tokenModel.setToken(RandomUtil.generateString(10));
