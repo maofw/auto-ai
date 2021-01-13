@@ -25,7 +25,7 @@ public class TokenUtil {
     public TokenEntity createToken(Long id) {
         TokenEntity tokenModel = new TokenEntity();
         tokenModel.setId(id);
-        tokenModel.setToken(RandomUtil.generateString(10));
+        tokenModel.setToken(RandomUtil.generateString(10) + "_" + id);
         tokenModel.setLogintime(new Date());
         return tokenModel;
     }
