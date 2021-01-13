@@ -69,7 +69,7 @@ public class LoginInterceptor implements HandlerInterceptor {
                         }
                         if(tokenEntity!=null){
                             data.put("token",tokenEntity.getToken());
-                            data.put("userId",tokenEntity.getId());
+                            data.put("loginUserId",tokenEntity.getId());
                             data.put("logintime",tokenEntity.getLogintime().getTime());
                         }
                         data.put("ip",ip);
