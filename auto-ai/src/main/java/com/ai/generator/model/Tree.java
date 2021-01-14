@@ -1,8 +1,9 @@
 package com.ai.generator.model;
 
+import java.io.Serializable;
 import java.util.List;
 
-public class Tree {
+public class Tree implements Serializable {
     private Long id ;
     private String name ;
     private Long parentId;

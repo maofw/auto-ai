@@ -1,5 +1,6 @@
 package com.ai.generator.model;
 
+import java.io.Serializable;
 import java.util.Date;
 
 /**
@@ -7,7 +8,7 @@ import java.util.Date;
  * @author Louis
  * @date Sep 13, 2018
  */
-public class BaseModel {
+public class BaseModel implements Serializable {
 
 	private Long id;
 	
